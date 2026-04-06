@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Gestión Pro de Items</title>
+
+<style>
+    body {
+        font-family: 'Segoe UI', sans-serif;
+        background: #fdf6f9;
+        margin: 0;
+    }
+
+    header {
+        background: #f8c8dc;
+        color: #333;
+        padding: 20px;
+        text-align: center;
+        font-size: 24px;
+        font-weight: bold;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .container {
+        width: 85%;
+        margin: 30px auto;
+    }
+
+    .card {
+        background: #ffffff;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        transition: transform 0.2s;
+    }
+
+    .card:hover {
+        transform: translateY(-3px);
+    }
+
+    h3 {
+        margin-top: 0;
+        color: #555;
+    }
+
+    input {
+        padding: 10px;
+        margin: 5px;
+        width: 40%;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+        outline: none;
+        transition: 0.2s;
+    }
+
+    input:focus {
+        border-color: #f8c8dc;
+        box-shadow: 0 0 5px #f8c8dc;
+    }
+
+    button {
+        padding: 10px 15px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+    .btn {
+        background: #cdb4db;
+        color: white;
+    }
+
+    .btn:hover {
+        background: #b583c4;
+    }
+
+    .btn-delete {
+        background: #ff8fab;
+        color: white;
+    }
+
+    .btn-delete:hover {
+        background: #ff5c8a;
+    }
+
+    .btn-edit {
+        background: #90dbf4;
+        color: white;
+        margin-right: 5px;
+    }
+
+    .btn-edit:hover {
+        background: #5cc9f5;
+    }
+
+    .item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px;
+        border-bottom: 1px solid #eee;
+        animation: fadeIn 0.3s ease-in;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    small {
+        color: #777;
+    }
+
+</style>
+</head>
+
+<body>
+
+<header>
+    🌸 Gestión de Items
+</header>
+
+<div class="container">
+
+    <!-- FORM -->
+    <div class="card">
+        <h3>➕ Crear / Editar Item</h3>
+        <input type="hidden" id="id">
+        <input type="text" id="nombre" placeholder="Nombre">
+        <input type="text" id="descripcion" placeholder="Descripción">
+        <button class="btn" onclick="guardarItem()">Guardar</button>
+    </div>
+
+    <!-- LISTA -->
+    <div class="card">
+        <h3>📋 Lista</h3>
+        <button class="btn" onclick="cargarItems()">Actualizar</button>
+        <div id="lista"></div>
+    </div>
+
+    <!-- API EXTERNA -->
+    <div class="card">
+        <h3>🌐 Usuarios (API externa)</h3>
+        <button class="btn" onclick="cargarUsuarios()">Cargar Usuarios</button>
+        <div id="usuarios"></div>
+    </div>
+
+</div>
+
+<script>
+
+// ================= ITEMS =================
+
+// CARGAR ITEMS
+async function cargarItems() {
+    const res = await fetch('/items');
+    const data = await res.json();
+
+    const lista = document.getElementById('lista');
+    lista.innerHTML = '';
+
+    data.forEach(item => {
+        const div = document.createElement('div');
+        div.classList.add('item');
+
+        div.innerHTML = `
+            <div>
+                <strong>${item.nombre}</strong><br>
+                <small>${item.descripcion}</small>
+            </div>
+            <div>
+                <button class="btn-edit" onclick="editarItem(${item.id}, \`${item.nombre}\`, \`${item.descripcion}\`)">Editar</button>
+                <button class="btn-delete" onclick="eliminarItem(${item.id})">Eliminar</button>
+            </div>
+        `;
+
+        lista.appendChild(div);
+    });
+}
+
+// GUARDAR
+async function guardarItem() {
+    const id = document.getElementById('id').value;
+    const nombre = document.getElementById('nombre').value;
+    const descripcion = document.getElementById('descripcion').value;
+
+    if (!nombre || !descripcion) {
+        alert("Completa los campos");
+        return;
+    }
+
+    if (id) {
+        await fetch(`/items/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nombre, descripcion })
+        });
+    } else {
+        await fetch('/items', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nombre, descripcion })
+        });
+    }
+
+    limpiarFormulario();
+    cargarItems();
+}
+
+// EDITAR
+function editarItem(id, nombre, descripcion) {
+    document.getElementById('id').value = id;
+    document.getElementById('nombre').value = nombre;
+    document.getElementById('descripcion').value = descripcion;
+}
+
+// ELIMINAR
+async function eliminarItem(id) {
+    await fetch(`/items/${id}`, {
+        method: 'DELETE'
+    });
+
+    cargarItems();
+}
+
+// LIMPIAR
+function limpiarFormulario() {
+    document.getElementById('id').value = '';
+    document.getElementById('nombre').value = '';
+    document.getElementById('descripcion').value = '';
+}
+
+// ================= API EXTERNA =================
+
+// CARGAR USUARIOS
+async function cargarUsuarios() {
+    const res = await fetch('/usuarios');
+    const data = await res.json();
+
+    const contenedor = document.getElementById('usuarios');
+    contenedor.innerHTML = '';
+
+    data.forEach(user => {
+        const div = document.createElement('div');
+        div.classList.add('item');
+
+        div.innerHTML = `
+            <div>
+                <strong>${user.nombre}</strong><br>
+                <small>${user.email}</small>
+            </div>
+        `;
+
+        contenedor.appendChild(div);
+    });
+}
+
+// AUTOLOAD
+cargarItems();
+
+</script>
+
+</body>
+</html>
